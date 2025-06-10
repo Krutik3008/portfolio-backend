@@ -24,12 +24,12 @@ console.log('Environment Variables:', {
 
 if (!process.env.MONGO_URI) {
     console.error('Error: MONGO_URI is not defined in .env file');
-    process.exit(1);
+    throw new Error('MONGO_URI is not defined');
 }
 
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.error('Error: EMAIL_USER and EMAIL_PASS must be defined in .env file');
-    process.exit(1);
+    throw new Error('EMAIL_USER and EMAIL_PASS are not defined');
 }
 
 // Set up Nodemailer transporter with Gmail SMTP settings
@@ -58,9 +58,9 @@ transporter.verify((error, success) => {
 
 const app = express();
 
-// Configure CORS
+// Configure CORS for Vercel deployment
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: 'https://Krutik3008.github.io', // Update to your deployed frontend URL
     methods: ['GET', 'POST'],
     credentials: true,
 }));
@@ -70,18 +70,33 @@ app.use(express.json());
 // Pass transporter to routes
 app.use('/api/contact', (req, res, next) => {
     req.transporter = transporter;
-    next();
+    try {
+        next();
+    } catch (error) {
+        console.error('Error in /api/contact middleware:', error);
+        res.status(500).json({ message: 'Server error in contact route' });
+    }
 }, contactRoutes);
 
-const PORT = process.env.PORT || 5000;
+// Test Route
+app.get('/', (req, res) => {
+    try {
+        res.send('Backend is running');
+    } catch (error) {
+        console.error('Error in / route:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
-// Remove deprecated options
+// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('Connected to MongoDB');
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     })
     .catch((error) => {
         console.error('MongoDB connection error:', error);
-        process.exit(1);
+        throw new Error('MongoDB connection failed');
     });
+
+// Export for Vercel
+export default app;
