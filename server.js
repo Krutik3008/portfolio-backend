@@ -50,6 +50,7 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
     if (error) {
         console.error('Email Transporter Error:', error);
+        throw new Error('Email Transporter verification failed');
     } else {
         console.log('Email Transporter Ready');
     }
@@ -59,7 +60,7 @@ const app = express();
 
 // Configure CORS for Vercel deployment
 app.use(cors({
-    origin: 'https://Krutik3008.github.io/portfolio-frontend', // Adjust to your exact frontend URL
+    origin: 'https://Krutik3008.github.io/portfolio-frontend', // Adjusted to match your frontend repo
     methods: ['GET', 'POST'],
     credentials: true,
 }));
@@ -70,6 +71,7 @@ app.use(express.json());
 app.use('/api/contact', (req, res, next) => {
     req.transporter = transporter;
     try {
+        console.log('Processing /api/contact request');
         next();
     } catch (error) {
         console.error('Error in /api/contact middleware:', error);
@@ -87,15 +89,19 @@ app.get('/', (req, res) => {
     }
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
+// Connect to MongoDB with retry logic
+const connectToMongoDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
         console.log('Connected to MongoDB');
-    })
-    .catch((error) => {
+    } catch (error) {
         console.error('MongoDB connection error:', error);
         throw new Error('MongoDB connection failed');
-    });
+    }
+};
+
+// Initialize MongoDB connection
+connectToMongoDB();
 
 // Export for Vercel
 export default app;

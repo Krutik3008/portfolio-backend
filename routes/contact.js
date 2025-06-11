@@ -8,19 +8,27 @@ router.post('/', async (req, res) => {
 
     // Validate request body
     if (!name || !email || !subject || !message) {
+        console.error('Validation error: All fields are required', { name, email, subject, message });
         return res.status(400).json({ message: 'All fields are required' });
     }
 
+    let savedContact;
     try {
         // Save to MongoDB
         const newContact = new Contact({ name, email, subject, message });
-        await newContact.save();
-        console.log('Data saved to MongoDB:', { name, email, subject, message });
+        savedContact = await newContact.save();
+        console.log('Data saved to MongoDB:', { id: savedContact._id, name, email, subject, message });
+    } catch (error) {
+        console.error('MongoDB save error:', error);
+        return res.status(500).json({ message: 'Failed to save message to database', error: error.message });
+    }
 
+    try {
         // Send email
         const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: 'patelkrupal3011@gmail.com',
+            to: process.env.EMAIL_USER, // Use EMAIL_USER to ensure the sender and receiver align
+            replyTo: email, // Allows replying directly to the sender
             subject: `New Contact Form Submission: ${subject}`,
             text: `
                 You have a new contact form submission:
@@ -39,21 +47,20 @@ router.post('/', async (req, res) => {
             `,
         };
 
+        console.log('Sending email with options:', { ...mailOptions, auth: '[REDACTED]' });
+
         await req.transporter.sendMail(mailOptions);
-        console.log('Email sent to patelkrupal3011@gmail.com');
+        console.log('Email sent successfully to:', process.env.EMAIL_USER);
 
         res.status(201).json({ message: 'Message saved and email sent successfully' });
     } catch (error) {
-        console.error('Error in contact route:', error);
-
-        // Provide more specific error messages
-        if (error.name === 'MongoError') {
-            res.status(500).json({ message: 'Failed to save message to database', error: error.message });
-        } else if (error.code === 'EAUTH') {
-            res.status(500).json({ message: 'Failed to send email due to authentication error', error: error.message });
-        } else {
-            res.status(500).json({ message: 'Failed to process request', error: error.message });
-        }
+        console.error('Error sending email:', error);
+        // If email fails but MongoDB save succeeded, still return a partial success
+        res.status(201).json({ 
+            message: 'Message saved to database, but failed to send email', 
+            error: error.message,
+            savedData: { id: savedContact._id, name, email, subject, message }
+        });
     }
 });
 
