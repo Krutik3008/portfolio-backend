@@ -42,7 +42,6 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS,
     },
     tls: {
-        // Ignore self-signed certificate issues (not recommended for production)
         rejectUnauthorized: false,
     },
 });
@@ -60,7 +59,7 @@ const app = express();
 
 // Configure CORS for Vercel deployment
 app.use(cors({
-    origin: 'https://Krutik3008.github.io', // Update to your deployed frontend URL
+    origin: 'https://Krutik3008.github.io/portfolio-frontend', // Adjust to your exact frontend URL
     methods: ['GET', 'POST'],
     credentials: true,
 }));
