@@ -60,7 +60,7 @@ const app = express();
 
 // Configure CORS for Vercel deployment
 app.use(cors({
-    origin: 'https://Krutik3008.github.io/portfolio-frontend', // Adjusted to match your frontend repo
+    origin: 'https://Krutik3008.github.io/portfolio-frontend', // Double-check this matches your exact frontend URL
     methods: ['GET', 'POST'],
     credentials: true,
 }));
